@@ -48,7 +48,7 @@ def main():
             .format(args.mod, args.optimizer,
                     args.loss_policy,
                     args.learning_rate,
-                    args.batch_size,
+                    8, # args.batch_size, #8,
                     args.end_to_end,
                     args.nclasses,
                     args.resize,
@@ -122,10 +122,10 @@ def main():
         print("=> no checkpoint found at '{}'".format(best_file_name))
     # validate(valid_loader, model, criterion, criterion_seg, 
     #         criterion_line_class, criterion_horizon, M_inv)
-    test_image(model, input, M_inv)
+    test_image(model, input, M_inv, args.batch_size)
     return
 
-def test_image(model, input, M_inv):
+def test_image(model, input0, M_inv, batch_size):
     # Evaluate model
     model.eval()
 
@@ -136,9 +136,12 @@ def test_image(model, input, M_inv):
         while True:
             i = i+1
             if not args.no_cuda:
-                input = input.cuda(non_blocking=True)
+                # input = input.cuda(non_blocking=True)
+                input = input0.unsqueeze(0).cuda(non_blocking=True)
+                # input = input.expand(batch_size, -1, -1, -1)
                 input = input.float()
 
+            print(input.shape)
             # Evaluate model
             try:
                 beta0, beta1, beta2, beta3, weightmap_zeros, M, \
@@ -148,6 +151,7 @@ def test_image(model, input, M_inv):
                 print(e)
                 continue
 
+            print(outputs_line.shape)
             # Horizon task & Line classification task
             _, line_pred = torch.max(outputs_line, 1)
 

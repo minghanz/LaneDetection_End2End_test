@@ -376,6 +376,7 @@ def validate(loader, model, criterion, criterion_seg,
         
         # Start validation loop
         for i, (input, gt, params, idx, gt_line, gt_horizon, index) in tqdm(enumerate(loader)):
+            # print(input.shape)
             if not args.no_cuda:
                 input, params = input.cuda(non_blocking=True), params.cuda(non_blocking=True)
                 input = input.float()
@@ -389,7 +390,7 @@ def validate(loader, model, criterion, criterion_seg,
                 print("Batch with idx {} skipped due to singular matrix".format(idx.numpy()))
                 print(e)
                 continue
-
+            # print(outputs_line.shape) #8*3*4
             # Compute losses on parameters or segmentation
             if args.end_to_end:
                 loss = criterion(beta0, gt0) + criterion(beta1, gt1)

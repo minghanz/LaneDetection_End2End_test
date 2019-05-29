@@ -508,8 +508,9 @@ def load_image(img_name, resize): # add by minghan
     image = F.crop(image, h-640, 0, 640, w)
     image = F.resize(image, size=(resize, 2*resize), interpolation=Image.BILINEAR)
 
-    image = transforms.ToTensor(image).float()
-
+    # image = transforms.ToTensor(image).float()
+    totensor = transforms.ToTensor()
+    image = totensor(image).float()
     return image
 
 def my_collate(batch):
