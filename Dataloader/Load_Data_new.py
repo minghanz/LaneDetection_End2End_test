@@ -497,6 +497,20 @@ def get_loader(num_train, json_file, image_dir, gt_dir, flip_on, batch_size,
 
     return train_loader, valid_loader, valid_idx
 
+def load_image(img_name, resize): # add by minghan
+    """
+    Args: idx (int): Index in list to load image
+    """
+    with open(img_name, 'rb') as f:
+        image = (Image.open(f).convert('RGB'))
+
+    w, h = image.size
+    image = F.crop(image, h-640, 0, 640, w)
+    image = F.resize(image, size=(resize, 2*resize), interpolation=Image.BILINEAR)
+
+    image = transforms.ToTensor(image).float()
+
+    return image
 
 def my_collate(batch):
     batch = [dict for dict in batch if dict['4_lanes'] is True]

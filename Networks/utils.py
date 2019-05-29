@@ -150,7 +150,61 @@ def save_weightmap(train_or_val, M, M_inv, weightmap_zeros,
     fig.savefig(save_path + '/example/{}/weight_idx-{}_batch-{}'.format(train_or_val, idx, i))
     plt.clf()
     plt.close(fig)
+def save_weightmap_no_gt(train_or_val, M, M_inv, weightmap_zeros,
+                   beta0, beta1, beta2, beta3, line_class, idx, i, images, no_ortho, resize, save_path):
+    M = M.data.cpu().numpy()[0]
+    x = np.zeros(3)
 
+    line_class = line_class[0].cpu().numpy()
+    left_lane = True if line_class[0] != 0 else False
+    right_lane = True if line_class[3] != 0 else False
+
+    wm0_zeros = weightmap_zeros.data.cpu()[0, 0].numpy()
+    wm1_zeros = weightmap_zeros.data.cpu()[0, 1].numpy()
+
+    im = images.permute(0, 2, 3, 1).data.cpu().numpy()[0]
+    im_orig = np.copy(im)
+    # gt_orig = gt.permute(0, 2, 3, 1).data.cpu().numpy()[0, :, :, 0]
+    im_orig = draw_homography_points(im_orig, x, resize)
+
+    im, M_scaledup = test_projective_transform(im, resize, M)
+
+    im, lane0 = draw_fitted_line(im, beta0[0], resize, (255, 0, 0))
+    im, lane1 = draw_fitted_line(im, beta1[0], resize, (0, 0, 255))
+    if beta2 is not None:
+        if left_lane:
+            im, lane2 = draw_fitted_line(im, beta2[0], resize, (255, 255, 0))
+        if right_lane:
+            im, lane3 = draw_fitted_line(im, beta3[0], resize, (255, 128, 0))
+
+
+    if not no_ortho:
+        im_inverse = cv2.warpPerspective(im, np.linalg.inv(M_scaledup), (2*resize, resize))
+    else:
+        im_inverse = im_orig
+
+    im_orig = np.clip(im_orig, 0, 1)
+    im_inverse = np.clip(im_inverse, 0, 1)
+    im = np.clip(im, 0, 1)
+
+    fig = plt.figure()
+    ax1 = fig.add_subplot(421)
+    ax2 = fig.add_subplot(422)
+    ax3 = fig.add_subplot(423)
+    ax4 = fig.add_subplot(424)
+    ax5 = fig.add_subplot(425)
+    ax6 = fig.add_subplot(426)
+    ax7 = fig.add_subplot(427)
+    ax1.imshow(im)
+    ax2.imshow(wm0_zeros)
+    ax3.imshow(im_inverse)
+    ax4.imshow(wm1_zeros)
+    ax5.imshow(wm0_zeros/np.max(wm0_zeros)+wm1_zeros/np.max(wm1_zeros))
+    ax6.imshow(im_orig)
+    # ax7.imshow(gt_orig)
+    fig.savefig(save_path + '/example/{}/weight_idx-{}_batch-{}'.format(train_or_val, idx, i))
+    plt.clf()
+    plt.close(fig)
 
 def test_projective_transform(input, resize, M):
     # test grid using built in F.grid_sampler method.
