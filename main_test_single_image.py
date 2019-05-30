@@ -17,7 +17,7 @@ from tqdm import tqdm
 from tensorboardX import SummaryWriter
 
 from Dataloader.Load_Data_new import get_loader, get_homography, \
-                                     load_valid_set_file_all, write_lsq_results, load_image
+                                     load_valid_set_file_all, write_lsq_results, load_image, get_imgs_loader
 from eval_lane import LaneEval
 from Loss_crit import define_loss_crit, polynomial 
 from Networks.LSQ_layer import Net
@@ -59,7 +59,8 @@ def main():
     M_inv = get_homography(args.resize)
 
     # Dataloader for training and validation set
-    input = load_image(args.image_dir, args.resize)
+    imgs_loader = get_imgs_loader(args.image_dir, args.resize)
+    # input = load_image(args.image_dir, args.resize)
 
     # Define network
     model = Net(args)
@@ -122,7 +123,8 @@ def main():
         print("=> no checkpoint found at '{}'".format(best_file_name))
     # validate(valid_loader, model, criterion, criterion_seg, 
     #         criterion_line_class, criterion_horizon, M_inv)
-    test_image(model, input, M_inv, args.batch_size)
+    # test_image(model, input, M_inv, args.batch_size)
+    evaluate_imgs(model, imgs_loader, M_inv)
     return
 
 def test_image(model, input0, M_inv, batch_size):
@@ -138,6 +140,65 @@ def test_image(model, input0, M_inv, batch_size):
             if not args.no_cuda:
                 # input = input.cuda(non_blocking=True)
                 input = input0.unsqueeze(0).cuda(non_blocking=True)
+                # input = input.expand(batch_size, -1, -1, -1)
+                input = input.float()
+
+            print(input.shape)
+            # Evaluate model
+            try:
+                beta0, beta1, beta2, beta3, weightmap_zeros, M, \
+                output_net, outputs_line, outputs_horizon = model(input, args.end_to_end)
+            except RuntimeError as e:
+                print("Batch with idx {} skipped due to singular matrix".format(i))
+                print(e)
+                continue
+
+            print(outputs_line.shape)
+            # Horizon task & Line classification task
+            _, line_pred = torch.max(outputs_line, 1)
+
+            #Write predictions to json file
+            if args.clas:
+                num_el = input.size(0)
+                if args.nclasses > 2:
+                    params_batch = torch.cat((beta0, beta1, beta2, beta3),2) \
+                        .transpose(1, 2).data.tolist()
+                else: 
+                    params_batch = torch.cat((beta0, beta1),2).transpose(1, 2).data.tolist()
+                    
+                # line_type = line_pred.data.tolist()
+                # horizon_pred = horizon_pred.data.tolist()
+                # with open(val_set_path, 'w') as jsonFile:
+                #     for j in range(num_el):
+                #         im_id = index[j]
+                #         json_line = valid_set_labels[im_id]
+                #         line_id = line_type[j]
+                #         horizon_est = horizon_pred[j]
+                #         params = params_batch[j]
+                #         json_line["params"] = params
+                #         json_line["line_id"] = line_id
+                #         json_line["horizon_est"] = horizon_est
+                #         json.dump(json_line, jsonFile)
+                #         jsonFile.write('\n')
+
+            # Plot weightmap and curves                            
+            save_weightmap_no_gt('valid', M, M_inv,
+                            weightmap_zeros, beta0, beta1, beta2, beta3,
+                            line_pred, 0, i, input, args.no_ortho, args.resize, args.save_path)
+            print("iter %d \n"%(i))
+        return
+
+def evaluate_imgs(model, imgs_loader, M_inv):
+    # Evaluate model
+    model.eval()
+
+    # Only forward pass, hence no gradients needed
+    with torch.no_grad():
+        # Start validation loop
+        for i, input in tqdm(enumerate(imgs_loader)):
+            if not args.no_cuda:
+                input = input.cuda(non_blocking=True)
+                # input = input0.unsqueeze(0).cuda(non_blocking=True)
                 # input = input.expand(batch_size, -1, -1, -1)
                 input = input.float()
 

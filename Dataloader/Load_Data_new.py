@@ -114,6 +114,23 @@ class LaneDataset(Dataset):
             return image, gt, params, idx, line_lst, horizon, index
         return image, gt, params, idx, line_lst, horizon
 
+class LaneDatasetImageOnly(Dataset):
+    """Dataset with labeled lanes"""
+    def __init__(self, image_dir, resize):
+        self.resize = resize
+        self.totensor = transforms.ToTensor()
+        self.image_dir = image_dir
+        self.rgb_lst = sorted(os.listdir(image_dir))
+        self.num_imgs = len(self.rgb_lst)
+
+    def __len__(self):
+        return self.num_img
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.image_dir, self.rgb_lst[idx])
+        img = load_image(img_name, self.resize)
+        return img
+
 
 def mirror_list(lst):
     '''
@@ -496,6 +513,11 @@ def get_loader(num_train, json_file, image_dir, gt_dir, flip_on, batch_size,
                               num_workers=num_workers, pin_memory=True) #collate_fn=my_collate)
 
     return train_loader, valid_loader, valid_idx
+
+def get_imgs_loader(image_dir, resize):
+    imgs_dataset = LaneDatasetImageOnly(image_dir, resize)
+    valid_loader = DataLoader(imgs_dataset)
+    return valid_loader
 
 def load_image(img_name, resize): # add by minghan
     """
