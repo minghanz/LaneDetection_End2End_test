@@ -505,7 +505,8 @@ def load_image(img_name, resize): # add by minghan
         image = (Image.open(f).convert('RGB'))
 
     w, h = image.size
-    image = F.crop(image, h-640, 0, 640, w)
+    # image = F.crop(image, h-640, 0, 640, w)
+    image = F.crop(image, h-400, 0, 400, w)
     image = F.resize(image, size=(resize, 2*resize), interpolation=Image.BILINEAR)
 
     # image = transforms.ToTensor(image).float()
