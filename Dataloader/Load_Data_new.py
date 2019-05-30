@@ -124,7 +124,7 @@ class LaneDatasetImageOnly(Dataset):
         self.num_imgs = len(self.rgb_lst)
 
     def __len__(self):
-        return self.num_img
+        return self.num_imgs
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.image_dir, self.rgb_lst[idx])
@@ -527,7 +527,9 @@ def load_image(img_name, resize): # add by minghan
         image = (Image.open(f).convert('RGB'))
 
     w, h = image.size
+    ## for TuSimple data
     # image = F.crop(image, h-640, 0, 640, w)
+    ## for CARLA 800*600 images
     image = F.crop(image, h-400, 0, 400, w)
     image = F.resize(image, size=(resize, 2*resize), interpolation=Image.BILINEAR)
 

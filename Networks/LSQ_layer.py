@@ -21,8 +21,11 @@ def Init_Projective_transform(nclasses, batch_size, resize):
     y_start = 0.3
     y_stop = 1
     xd1, xd2, xd3, xd4 = 0.45, 0.55, 0.45, 0.55
+    ## for TuSimple data
     # src = np.float32([[0.45, y_start], [0.55, y_start], [0.1, y_stop], [0.9, y_stop]])
+    ## for CARLA 800*600 images
     src = np.float32([[0.5 - 2.0/75.0, y_start], [0.5 + 2.0/75.0, y_start], [0.1, y_stop], [0.9, y_stop]])
+    
     dst = np.float32([[xd3, y_start], [xd4, y_start], [xd1, y_stop], [xd2, y_stop]])
     M = cv2.getPerspectiveTransform(src, dst)
     M_inv = cv2.getPerspectiveTransform(dst, src)
